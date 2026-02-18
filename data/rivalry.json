@@ -1,0 +1,79 @@
+
+{
+  "updatedThroughSeason": "2025",
+  "allTime": {
+    "packersWins": 107,
+    "bearsWins": 95,
+    "ties": 6,
+    "packersWinPct": 0.528,
+    "lastMatchup": {
+      "date": "2024-11-17",
+      "packersScore": 20,
+      "bearsScore": 19,
+      "winner": "Packers"
+    },
+    "longestWinStreak": {
+      "team": "Packers",
+      "games": 11
+    },
+    "last10": {
+      "packersWins": 10,
+      "bearsWins": 0,
+      "ties": 0
+    }
+  },
+  "eras": [
+    { 
+      "name": "Pre–Super Bowl Era", 
+      "packers": 43, 
+      "bears": 55, 
+      "ties": 6,
+      "note": "Defining games and shifts in momentum during the league's infancy."
+    },
+    { 
+      "name": "Favre Era", 
+      "packers": 22, 
+      "bears": 10, 
+      "ties": 0,
+      "note": "A turning point in the rivalry with Hall of Fame consistency."
+    },
+    { 
+      "name": "Rodgers Era", 
+      "packers": 26, 
+      "bears": 5, 
+      "ties": 0,
+      "note": "Dominance defined by high-efficiency play and key divisional wins."
+    }
+  ],
+  "excuses": [
+    "It was too cold at Soldier Field.",
+    "The grass was too slippery.",
+    "The refs clearly missed that pass interference in the 2nd quarter.",
+    "We are just one elite quarterback away.",
+    "The double doink still haunts our psyche.",
+    "It's a rebuilding century.",
+    "The wind was blowing the wrong way during the field goal.",
+    "We played better if you exclude the scoring drives.",
+    "The 1985 defense wouldn't have allowed that.",
+    "The headsets were malfunctioning.",
+    "It's hard to catch the ball when it's that inflated.",
+    "We were looking ahead to next week.",
+    "The Packers get all the calls from the league office.",
+    "Our offensive coordinator is playing 1D chess.",
+    "We were trying out a new defensive scheme that hasn't been perfected.",
+    "The bus arrived late to the stadium.",
+    "The sun was in our eyes (even in a night game).",
+    "We wanted to give the fans a dramatic finish.",
+    "Our star kicker has a hangnail.",
+    "The turf was too fast for our linebackers.",
+    "We're keeping our best plays secret for the playoffs.",
+    "The altitude in Green Bay is different.",
+    "We have a better history, even if the scoreboard doesn't show it.",
+    "The play clock was definitely faster than usual.",
+    "Wait until next year."
+  ],
+  "ctaLinks": {
+    "ticketsUrl": "https://example.com/tickets",
+    "gearUrl": "https://example.com/shop"
+  }
+}
