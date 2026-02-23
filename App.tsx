@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Trophy,
   History,
   MessageCircle,
-  Ticket,
-  ShoppingBag,
   Copy,
   Check,
   ShieldCheck,
@@ -52,7 +50,6 @@ interface RivalryData {
 }
 
 // --- Components ---
-
 const CountUp: React.FC<{ end: number; duration?: number }> = ({
   end,
   duration = 1000,
@@ -64,15 +61,18 @@ const CountUp: React.FC<{ end: number; duration?: number }> = ({
     let animationFrameId: number;
 
     const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
+      if (startTime === null) startTime = timestamp;
 
-      const progress = timestamp - startTime;
-      const progressRatio = Math.min(progress / duration, 1);
+      const elapsed = timestamp - startTime;
+      const linear = Math.min(elapsed / duration, 1);
 
-      const current = Math.floor(progressRatio * end);
+      // Smooth ease-out for a more "premium" feel
+      const eased = 1 - Math.pow(1 - linear, 3);
+
+      const current = Math.floor(eased * end);
       setCount(current);
 
-      if (progress < duration) {
+      if (linear < 1) {
         animationFrameId = requestAnimationFrame(animate);
       } else {
         setCount(end); // ensure exact final value
@@ -120,12 +120,37 @@ const StatCard: React.FC<{
 
 const App: React.FC = () => {
   const [data, setData] = useState<RivalryData | null>(null);
+
+  // Excuse + sharing state
   const [excuse, setExcuse] = useState("");
+  const [excuseIndex, setExcuseIndex] = useState<number>(0);
   const [copied, setCopied] = useState(false);
+
+  // Page state
   const [error, setError] = useState<string | null>(null);
 
+  // Helper: build share text (used for copy + X)
+  const buildShareText = (e: string) =>
+    `"${e}" — Bears fan, probably. via packersvsbears.com 🧀🏈`;
+
+  // Helper: set excuse + persist as shareable URL (?excuse=7)
+  const setExcuseAndUrl = (idx: number, json: RivalryData) => {
+    const total = json.excuses?.length ?? 0;
+    if (!total) return;
+
+    const safeIdx = ((idx % total) + total) % total;
+    const next = json.excuses[safeIdx] ?? "We’re rebuilding. Again.";
+
+    setExcuseIndex(safeIdx);
+    setExcuse(next);
+
+    const params = new URLSearchParams(window.location.search);
+    params.set("excuse", String(safeIdx));
+    window.history.replaceState({}, "", `?${params.toString()}`);
+  };
+
   useEffect(() => {
-    // Fetch local JSON to avoid ESM import issues in some environments
+    // Fetch local JSON (expects public/data/rivalry.json)
     fetch(`${import.meta.env.BASE_URL}data/rivalry.json`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load rivalry data");
@@ -133,7 +158,25 @@ const App: React.FC = () => {
       })
       .then((json: RivalryData) => {
         setData(json);
-        setExcuse(json.excuses[0] ?? "We're rebuilding. Again.");
+
+        // URL state: if ?excuse= is present, load that specific excuse
+        const params = new URLSearchParams(window.location.search);
+        const idxRaw = params.get("excuse");
+
+        if (idxRaw !== null) {
+          const idx = Number(idxRaw);
+          if (
+            Number.isFinite(idx) &&
+            idx >= 0 &&
+            idx < (json.excuses?.length ?? 0)
+          ) {
+            setExcuseAndUrl(idx, json);
+            return;
+          }
+        }
+
+        // Default to first excuse and keep URL in sync
+        setExcuseAndUrl(0, json);
       })
       .catch((err) => {
         console.error(err);
@@ -142,23 +185,49 @@ const App: React.FC = () => {
   }, []);
 
   const generateExcuse = () => {
-    if (!data) return;
-    const newExcuse =
-      data.excuses[Math.floor(Math.random() * data.excuses.length)];
-    setExcuse(newExcuse);
+    if (!data?.excuses?.length) return;
+    const idx = Math.floor(Math.random() * data.excuses.length);
+    setExcuseAndUrl(idx, data);
   };
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
+    const text = buildShareText(excuse);
+
     try {
-      const text = `"${excuse}" - via PackersVsBears.com 🧀🏈`;
-      navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      // fallback: select text or show message
-      setCopied(false);
-      alert("Copy failed—try manually copying.");
+      // Fallback for blocked clipboard / older browsers
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "true");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1500);
+      } catch {
+        setCopied(false);
+        alert("Copy failed—try manually copying.");
+      }
     }
+  };
+
+  const shareOnX = () => {
+    // Uses a direct link to the current excuse
+    const text = buildShareText(excuse);
+    const shareUrl = `${window.location.origin}${window.location.pathname}?excuse=${excuseIndex}`;
+    const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      text
+    )}&url=${encodeURIComponent(shareUrl)}`;
+
+    window.open(intent, "_blank", "noopener,noreferrer");
   };
 
   if (error) {
@@ -185,21 +254,53 @@ const App: React.FC = () => {
       {/* 1. HERO SECTION */}
       <header className="relative bg-white pt-20 pb-16 px-6 overflow-hidden border-b border-gray-100">
         <div className="max-w-6xl mx-auto text-center relative z-10">
+          {/* Simple internal anchors (SEO/crawl + UX) */}
+          <nav className="text-xs sm:text-sm text-gray-500 font-semibold mb-8 flex items-center justify-center gap-3 flex-wrap">
+            <a
+              href="#stats"
+              className="hover:text-orange-600 transition-colors"
+            >
+              All-Time Record
+            </a>
+            <span className="text-gray-200">|</span>
+            <a href="#eras" className="hover:text-orange-600 transition-colors">
+              By Era
+            </a>
+            <span className="text-gray-200">|</span>
+            <a
+              href="#excuses"
+              className="hover:text-orange-600 transition-colors"
+            >
+              Excuse Generator
+            </a>
+          </nav>
+
           <div className="inline-block px-4 py-1.5 mb-6 text-sm font-bold tracking-widest text-green-800 bg-green-50 rounded-full uppercase">
-            The North's Eternal Grudge
+            The North&apos;s Eternal Grudge
           </div>
+
           <h1 className="text-5xl md:text-7xl font-extrabold text-blue-950 tracking-tight mb-4">
             Packers <span className="text-gray-300">vs</span> Bears
           </h1>
-          <p className="text-xl md:text-2xl text-gray-600 font-medium max-w-2xl mx-auto mb-12">
+
+          <p className="text-xl md:text-2xl text-gray-600 font-medium max-w-2xl mx-auto mb-6">
             The Rivalry. The Record. The Reality. <br />
             <span className="text-sm text-gray-400 mt-2 block font-normal">
               Updated through the {data.updatedThroughSeason} season
             </span>
           </p>
 
+          {/* SEO-friendly descriptive copy (Google likes real text) */}
+          <p className="text-base text-gray-600 max-w-3xl mx-auto leading-relaxed mb-10">
+            Explore the full <strong>Packers vs Bears all-time record</strong>,
+            including rivalry stats like win percentage, recent results, and
+            era-by-era breakdowns. This page tracks the historical matchup
+            between the Green Bay Packers and Chicago Bears with light satire
+            and simple, fast-loading visuals.
+          </p>
+
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12">
-            <div className="flex items-center gap-8 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 w-full md:w-auto">
+            <div className="flex flex-col md:flex-row items-center gap-2 md:gap-8 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 w-full md:w-auto">
               <div className="text-center px-4">
                 <span className="block text-xs font-bold text-green-700 uppercase tracking-widest mb-1">
                   Packers
@@ -208,7 +309,9 @@ const App: React.FC = () => {
                   <CountUp end={data.allTime.packersWins} />
                 </span>
               </div>
+
               <div className="h-16 w-[1px] bg-gray-200"></div>
+
               <div className="text-center px-4">
                 <span className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
                   Ties
@@ -217,7 +320,9 @@ const App: React.FC = () => {
                   <CountUp end={data.allTime.ties} />
                 </span>
               </div>
+
               <div className="h-16 w-[1px] bg-gray-200"></div>
+
               <div className="text-center px-4">
                 <span className="block text-xs font-bold text-blue-950 uppercase tracking-widest mb-1">
                   Bears
@@ -256,13 +361,13 @@ const App: React.FC = () => {
       {/* 2. ALL-TIME STATS */}
       <section id="stats" className="py-20 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
-          <SectionHeading>All-Time Record & Key Stats</SectionHeading>
+          <SectionHeading>All-Time Record &amp; Key Stats</SectionHeading>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <StatCard
               icon={<Trophy className="text-green-700" />}
               label="All-Time Leader"
               value="Green Bay"
-              description={`The Packers took the all-time lead in 2017 and haven't looked back.`}
+              description="The Packers hold the overall lead in the rivalry."
             />
             <StatCard
               icon={<TrendingUp className="text-blue-950" />}
@@ -274,7 +379,7 @@ const App: React.FC = () => {
               icon={<ShieldCheck className="text-gray-500" />}
               label="Last 10 Matchups"
               value={`${data.allTime.last10.packersWins}-${data.allTime.last10.bearsWins}`}
-              description="A decade of data tells a very one-sided story."
+              description="Recent history at a glance."
             />
             <StatCard
               icon={<Calendar className="text-orange-600" />}
@@ -290,7 +395,7 @@ const App: React.FC = () => {
                 data.allTime.bearsWins +
                 data.allTime.ties
               ).toString()}
-              description="A historic tally of the NFL's oldest and most frequent rivalry."
+              description="A historic tally of the NFL’s oldest rivalry."
             />
             <StatCard
               icon={<MessageCircle className="text-blue-500" />}
@@ -318,6 +423,7 @@ const App: React.FC = () => {
                   </h3>
                   <p className="text-gray-500 text-sm italic">{era.note}</p>
                 </div>
+
                 <div className="flex items-center justify-center gap-12 bg-gray-50 px-8 py-4 rounded-2xl md:w-auto">
                   <div className="text-center">
                     <span className="block text-[10px] font-bold text-green-700 uppercase mb-1">
@@ -327,7 +433,9 @@ const App: React.FC = () => {
                       {era.packers}
                     </span>
                   </div>
+
                   <div className="text-gray-300 font-bold text-xl">vs</div>
+
                   <div className="text-center">
                     <span className="block text-[10px] font-bold text-blue-950 uppercase mb-1">
                       Bears
@@ -354,27 +462,32 @@ const App: React.FC = () => {
               The Bears Excuse Generator
             </h2>
             <p className="text-gray-600 font-medium">
-              Lost again? Don't worry, we've got you covered with a ready-made
-              reason.
+              Lost again? Don&apos;t worry — we&apos;ve got you covered with a
+              ready-made reason.
             </p>
           </div>
 
           <div className="bg-blue-950 text-white p-8 md:p-12 rounded-[40px] shadow-2xl shadow-blue-900/20 text-center border-b-8 border-orange-600">
             <div className="min-h-[120px] flex items-center justify-center mb-10">
               <p className="text-2xl md:text-4xl font-bold leading-tight tracking-tight italic">
-                "{excuse}"
+                &quot;{excuse}&quot;
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={generateExcuse}
+                type="button"
+                aria-label="Generate a new Bears excuse"
                 className="w-full sm:w-auto px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest text-sm"
               >
                 New Excuse
               </button>
+
               <button
                 onClick={copyToClipboard}
+                type="button"
+                aria-label="Copy excuse to clipboard"
                 className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
               >
                 {copied ? (
@@ -384,45 +497,26 @@ const App: React.FC = () => {
                 )}
                 {copied ? "Copied!" : "Copy to Share"}
               </button>
+
+              <button
+                onClick={shareOnX}
+                type="button"
+                aria-label="Share excuse on X"
+                className="w-full sm:w-auto px-8 py-4 bg-black/80 hover:bg-black text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
+              >
+                Share on X
+              </button>
             </div>
+
+            {/* <p className="mt-6 text-sm text-white/70">
+              Tip: Each excuse has its own shareable link (example:
+              <span className="font-semibold"> ?excuse=7</span>).
+            </p> */}
           </div>
         </div>
+
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-orange-100 rounded-full blur-3xl opacity-50"></div>
         <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
-      </section>
-
-      {/* 5. MONETIZATION-READY CTA */}
-      <section id="gear" className="py-20 px-6 bg-gray-50">
-        <div className="max-w-4xl mx-auto bg-white rounded-3xl p-10 md:p-16 text-center border border-gray-100 shadow-sm">
-          <h2 className="text-3xl font-bold text-blue-950 mb-4">Gear Up</h2>
-          <p className="text-gray-500 mb-10">
-            Rep the green and gold (or the navy and orange) for the next
-            showdown. Don't show up empty-handed.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <a
-              href={data.ctaLinks.ticketsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-3 px-8 py-5 bg-blue-950 text-white font-bold rounded-2xl hover:translate-y-[-2px] transition-all"
-            >
-              <Ticket className="w-5 h-5" />
-              Find Tickets
-            </a>
-            <a
-              href={data.ctaLinks.gearUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-3 px-8 py-5 border-2 border-blue-950 text-blue-950 font-bold rounded-2xl hover:bg-blue-50 transition-all"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              Shop Rivalry Gear
-            </a>
-          </div>
-          <p className="mt-8 text-[10px] text-gray-400 uppercase tracking-widest">
-            Links may be affiliate links in the future.
-          </p>
-        </div>
       </section>
 
       {/* 6. FOOTER */}
@@ -435,9 +529,10 @@ const App: React.FC = () => {
               </span>
               <p className="text-white/50 text-sm max-w-sm">
                 Providing essential rivalry stats and lighthearted satire for
-                the NFL's most legendary matchup.
+                the NFL&apos;s most legendary matchup.
               </p>
             </div>
+
             <nav className="flex items-center gap-6">
               <a
                 href="#stats"
@@ -459,6 +554,7 @@ const App: React.FC = () => {
               </a>
             </nav>
           </div>
+
           <div className="text-center text-[10px] text-white/30 uppercase tracking-[0.2em] leading-relaxed">
             <p className="mb-4 font-bold text-white/40">Disclaimer</p>
             <p>
