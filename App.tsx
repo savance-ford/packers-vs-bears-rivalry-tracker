@@ -60,19 +60,28 @@ const CountUp: React.FC<{ end: number; duration?: number }> = ({
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    let start = 0;
-    if (end === 0) return;
-    const increment = end / (duration / 16);
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= end) {
-        setCount(end);
-        clearInterval(timer);
+    let startTime: number | null = null;
+    let animationFrameId: number;
+
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+
+      const progress = timestamp - startTime;
+      const progressRatio = Math.min(progress / duration, 1);
+
+      const current = Math.floor(progressRatio * end);
+      setCount(current);
+
+      if (progress < duration) {
+        animationFrameId = requestAnimationFrame(animate);
       } else {
-        setCount(Math.floor(start));
+        setCount(end); // ensure exact final value
       }
-    }, 16);
-    return () => clearInterval(timer);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationFrameId);
   }, [end, duration]);
 
   return <span>{count}</span>;
@@ -124,7 +133,7 @@ const App: React.FC = () => {
       })
       .then((json: RivalryData) => {
         setData(json);
-        setExcuse(json.excuses[0]);
+        setExcuse(json.excuses[0] ?? "We're rebuilding. Again.");
       })
       .catch((err) => {
         console.error(err);
@@ -140,10 +149,16 @@ const App: React.FC = () => {
   };
 
   const copyToClipboard = () => {
-    const text = `"${excuse}" - via PackersVsBears.com 🧀🏈`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      const text = `"${excuse}" - via PackersVsBears.com 🧀🏈`;
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: select text or show message
+      setCopied(false);
+      alert("Copy failed—try manually copying.");
+    }
   };
 
   if (error) {
@@ -292,9 +307,9 @@ const App: React.FC = () => {
         <div className="max-w-6xl mx-auto">
           <SectionHeading>By Era</SectionHeading>
           <div className="space-y-4">
-            {data.eras.map((era, idx) => (
+            {data.eras.map((era) => (
               <div
-                key={idx}
+                key={era.name}
                 className="bg-white p-6 md:p-10 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-md transition-shadow"
               >
                 <div className="md:w-1/3">
