@@ -79,6 +79,33 @@
     "The play clock was definitely faster than usual.",
     "Wait until next year."
   ],
+  "packersExcuses": [
+    "It’s just one game. Relax.",
+    "We always start slow.",
+    "January is what matters.",
+    "We’re testing new plays.",
+    "The refs missed three holding calls.",
+    "That wasn’t a catch.",
+    "We beat ourselves.",
+    "It’s a reload, not a rebuild.",
+    "We’re saving the real playbook for playoffs.",
+    "Cold weather team, warm weather game.",
+    "We still own the North.",
+    "Historically speaking, this means nothing.",
+    "We’ll see you at Lambeau.",
+    "They played their Super Bowl today.",
+    "We’re just being generous this season.",
+    "The defense will adjust.",
+    "That tipped pass changed everything.",
+    "Division games are weird.",
+    "We needed a wake-up call.",
+    "The analytics say we should’ve won.",
+    "We’re still ahead all-time.",
+    "We’ve got more rings.",
+    "This builds character.",
+    "Just wait until next year’s draft.",
+    "We don’t panic. We reload."
+  ],
   "ctaLinks": {
     "ticketsUrl": "https://example.com/tickets",
     "gearUrl": "https://example.com/shop"

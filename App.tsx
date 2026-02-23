@@ -10,7 +10,7 @@ import {
   Calendar,
   Loader2,
 } from "lucide-react";
-import { SpeedInsights } from '@vercel/speed-insights/react';
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // --- Types ---
 interface RivalryData {
@@ -44,6 +44,7 @@ interface RivalryData {
     note: string;
   }[];
   excuses: string[];
+  packersExcuses: string[];
   ctaLinks: {
     ticketsUrl: string;
     gearUrl: string;
@@ -125,7 +126,10 @@ const App: React.FC = () => {
   // Excuse + sharing state
   const [excuse, setExcuse] = useState("");
   const [excuseIndex, setExcuseIndex] = useState<number>(0);
+  const [packersExcuseIndex, setPackersExcuseIndex] = useState<number>(0);
   const [copied, setCopied] = useState(false);
+  const [packersExcuse, setPackersExcuse] = useState("");
+  const [packersCopied, setPackersCopied] = useState(false);
 
   // Page state
   const [error, setError] = useState<string | null>(null);
@@ -150,6 +154,21 @@ const App: React.FC = () => {
     window.history.replaceState({}, "", `?${params.toString()}`);
   };
 
+  const setPackersExcuseAndUrl = (idx: number) => {
+    if (!data?.packersExcuses?.length) return;
+
+    const total = data.packersExcuses.length;
+    const safeIdx = ((idx % total) + total) % total;
+    const next = data.packersExcuses[safeIdx] ?? "We’ll be fine.";
+
+    setPackersExcuseIndex(safeIdx);
+    setPackersExcuse(next);
+
+    const params = new URLSearchParams(window.location.search);
+    params.set("p_excuse", String(safeIdx));
+    window.history.replaceState({}, "", `?${params.toString()}`);
+  };
+
   useEffect(() => {
     // Fetch local JSON (expects public/data/rivalry.json)
     fetch(`${import.meta.env.BASE_URL}data/rivalry.json`)
@@ -159,6 +178,12 @@ const App: React.FC = () => {
       })
       .then((json: RivalryData) => {
         setData(json);
+
+        // Initialize Bears generator
+        setExcuse(json.excuses?.[0] ?? "We're rebuilding. Again.");
+
+        // Initialize Packers generator
+        setPackersExcuse(json.packersExcuses?.[0] ?? "We’ll be fine.");
 
         // URL state: if ?excuse= is present, load that specific excuse
         const params = new URLSearchParams(window.location.search);
@@ -191,6 +216,13 @@ const App: React.FC = () => {
     setExcuseAndUrl(idx, data);
   };
 
+  const generatePackersExcuse = () => {
+    if (!data?.packersExcuses?.length) return;
+
+    const idx = Math.floor(Math.random() * data.packersExcuses.length);
+    setPackersExcuseAndUrl(idx);
+  };
+
   const copyToClipboard = async () => {
     const text = buildShareText(excuse);
 
@@ -220,10 +252,33 @@ const App: React.FC = () => {
     }
   };
 
+  const copyPackersExcuse = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        `"${packersExcuse}" — Packers fan, probably.`
+      );
+      setPackersCopied(true);
+      setTimeout(() => setPackersCopied(false), 1500);
+    } catch {
+      alert("Copy failed.");
+    }
+  };
+
   const shareOnX = () => {
     // Uses a direct link to the current excuse
     const text = buildShareText(excuse);
     const shareUrl = `${window.location.origin}${window.location.pathname}?excuse=${excuseIndex}`;
+    const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      text
+    )}&url=${encodeURIComponent(shareUrl)}`;
+
+    window.open(intent, "_blank", "noopener,noreferrer");
+  };
+
+  const sharePackersOnX = () => {
+    const text = `"${packersExcuse}" — Packers fan, probably. via packersvsbears.com 🧀🏈`;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?p_excuse=${packersExcuseIndex}`;
+
     const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
       text
     )}&url=${encodeURIComponent(shareUrl)}`;
@@ -518,6 +573,49 @@ const App: React.FC = () => {
 
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-orange-100 rounded-full blur-3xl opacity-50"></div>
         <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
+      </section>
+
+      <section className="py-24 px-6 bg-gray-50 relative">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-black text-green-800 mb-4 tracking-tight">
+            The Packers Rare Loss Generator
+          </h2>
+
+          <p className="text-gray-600 font-medium mb-12">
+            On the rare occasion Green Bay loses...
+          </p>
+
+          <div className="bg-green-800 text-white p-8 md:p-12 rounded-[40px] shadow-xl text-center border-b-8 border-yellow-400">
+            <div className="min-h-[120px] flex items-center justify-center mb-10">
+              <p className="text-2xl md:text-4xl font-bold italic">
+                "{packersExcuse}"
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={generatePackersExcuse}
+                className="w-full sm:w-auto px-8 py-4 bg-yellow-400 hover:bg-yellow-500 text-green-900 font-black rounded-2xl transition-all active:scale-95 uppercase tracking-widest text-sm"
+              >
+                New Excuse
+              </button>
+
+              <button
+                onClick={copyPackersExcuse}
+                className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl transition-all"
+              >
+                {packersCopied ? "Copied!" : "Copy to Share"}
+              </button>
+              <button
+                onClick={sharePackersOnX}
+                type="button"
+                className="w-full sm:w-auto px-8 py-4 bg-black/80 hover:bg-black text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
+              >
+                Share on X
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* 6. FOOTER */}
