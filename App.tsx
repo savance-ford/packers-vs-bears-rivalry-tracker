@@ -10,6 +10,7 @@ import {
   Calendar,
   Loader2,
 } from "lucide-react";
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // --- Types ---
 interface RivalryData {
@@ -566,6 +567,7 @@ const App: React.FC = () => {
           </div>
         </div>
       </footer>
+      <SpeedInsights />
     </div>
   );
 };
