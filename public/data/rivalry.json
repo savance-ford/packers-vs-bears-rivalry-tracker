@@ -2,23 +2,23 @@
 {
   "updatedThroughSeason": "2025",
   "allTime": {
-    "packersWins": 107,
-    "bearsWins": 95,
+    "packersWins": 109,
+    "bearsWins": 98,
     "ties": 6,
-    "packersWinPct": 0.528,
+    "packersWinPct": 0.5117,
     "lastMatchup": {
-      "date": "2024-11-17",
-      "packersScore": 20,
-      "bearsScore": 19,
-      "winner": "Packers"
+      "date": "2026-01-10",
+      "packersScore": 27,
+      "bearsScore": 31,
+      "winner": "Bears"
     },
     "longestWinStreak": {
       "team": "Packers",
       "games": 11
     },
     "last10": {
-      "packersWins": 10,
-      "bearsWins": 0,
+      "packersWins": 7,
+      "bearsWins": 3,
       "ties": 0
     }
   },
@@ -43,6 +43,13 @@
       "bears": 5, 
       "ties": 0,
       "note": "Dominance defined by high-efficiency play and key divisional wins."
+    },
+    {
+      "name": "Post–Rodgers Era",
+      "packers": 18,
+      "bears": 28,
+      "ties": 0,
+      "note": "Recent chapters of the rivalry completing the modern all-time totals."
     }
   ],
   "excuses": [
