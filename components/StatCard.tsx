@@ -6,7 +6,6 @@ interface StatCardProps extends React.ComponentPropsWithoutRef<"div"> {
   label: string;
   value: string | number; // Added 'number' just in case you pass raw digits
   description: string;
-  className?: any;
 }
 
 const StatCard = ({

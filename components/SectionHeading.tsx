@@ -1,16 +1,11 @@
 import React from "react";
 
 // 1. Extract props to an interface and extend standard HTML attributes
-interface SectionHeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {
-  children?: React.ReactNode;
-}
+interface SectionHeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {}
 
 const SectionHeading = ({
-  //@ts-ignorets-ignore
   children,
-  //@ts-ignorets-ignore
   id,
-  //@ts-ignorets-ignore
   className = "",
   ...rest // Allows passing aria-labels, data attributes, etc.
 }: SectionHeadingProps) => {

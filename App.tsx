@@ -107,12 +107,40 @@ const useClipboard = (resetDuration = 1500) => {
   const [copied, setCopied] = useState(false);
 
   const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), resetDuration);
-    } catch {
-      alert("Copy failed—try manually copying.");
+    // 1. The classic fallback for non-secure contexts or older browsers
+    const fallbackCopy = (textToCopy: string) => {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = textToCopy;
+        textarea.setAttribute("readonly", "true");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+
+        setCopied(true);
+        setTimeout(() => setCopied(false), resetDuration);
+      } catch {
+        setCopied(false);
+        alert("Copy failed—try manually copying.");
+      }
+    };
+
+    // 2. Try the modern Clipboard API first, checking for secure context
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), resetDuration);
+      } catch {
+        // If the modern API fails (e.g., permissions issue), try the fallback
+        fallbackCopy(text);
+      }
+    } else {
+      // 3. Directly use fallback if modern API isn't available
+      fallbackCopy(text);
     }
   };
 
