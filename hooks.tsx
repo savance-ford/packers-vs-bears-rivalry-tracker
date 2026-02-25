@@ -1,21 +1,25 @@
 import { useEffect, useState, useCallback } from "react";
-import { RivalryData } from "./types-temp";
+import { RivalryData } from "./data-types";
 // 1. Manages fetching the rivalry data
 export const useRivalryData = () => {
   const [data, setData] = useState<RivalryData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}data/rivalry.json`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load rivalry data");
-        return res.json();
-      })
-      .then(setData)
-      .catch((err) => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.BASE_URL}data/rivalry.json`);
+        if (!res.ok) {
+          throw new Error("Failed to load rivalry data");
+        }
+        setData(await res.json());
+      } catch (err) {
         console.error(err);
         setError("Unable to load the stats. Please refresh the page.");
-      });
+      }
+    };
+
+    fetchData();
   }, []);
 
   return { data, error };
