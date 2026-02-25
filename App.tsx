@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React from "react";
 import {
   Trophy,
   History,
@@ -35,6 +35,72 @@ interface ExcuseGeneratorProps {
   };
 }
 
+type SharePlatform = "x" | "facebook" | "reddit" | "threads";
+
+const buildShareUrl = (
+  platform: SharePlatform,
+  shareUrl: string,
+  text: string
+) => {
+  const u = encodeURIComponent(shareUrl);
+  const t = encodeURIComponent(text);
+
+  switch (platform) {
+    case "x":
+      return `https://twitter.com/intent/tweet?text=${t}&url=${u}`;
+    case "facebook":
+      return `https://www.facebook.com/sharer/sharer.php?u=${u}`;
+    case "reddit":
+      return `https://www.reddit.com/submit?url=${u}&title=${t}`;
+    case "threads":
+      // Threads has no official share-intent URL
+      return `https://www.threads.net/`;
+    default:
+      const _exhaustiveCheck: never = platform;
+      return shareUrl;
+  }
+};
+
+const shareTo = async (
+  platform: SharePlatform,
+  text: string,
+  shareUrl: string
+) => {
+  const canNativeShare =
+    typeof navigator !== "undefined" &&
+    "share" in navigator &&
+    typeof (navigator as any).share === "function";
+
+  // Best experience for Threads is native share sheet (mobile)
+  if (platform === "threads" && canNativeShare) {
+    try {
+      await (navigator as any).share({ text, url: shareUrl });
+      return;
+    } catch {
+      // user canceled or share failed; fall through
+    }
+  }
+
+  // Threads fallback: copy + open Threads
+  if (platform === "threads") {
+    try {
+      await navigator.clipboard.writeText(`${text}\n${shareUrl}`);
+    } catch {
+      // ignore
+    }
+    window.open(
+      buildShareUrl("threads", shareUrl, text),
+      "_blank",
+      "noopener,noreferrer"
+    );
+    return;
+  }
+
+  // X / Facebook / Reddit
+  const url = buildShareUrl(platform, shareUrl, text);
+  window.open(url, "_blank", "noopener,noreferrer");
+};
+
 const ExcuseGeneratorSection: React.FC<ExcuseGeneratorProps> = ({
   id,
   title,
@@ -48,15 +114,24 @@ const ExcuseGeneratorSection: React.FC<ExcuseGeneratorProps> = ({
 }) => {
   const { copied, copy } = useClipboard();
 
-  const shareText = `"${excuse}" — ${teamTag} fan, probably.`;
-  const shareUrl = `${window.location.origin}${window.location.pathname}?${urlKey}=${excuseIndex}`;
+  // Keep the share text consistent across platforms
+  const shareText = `"${excuse}" — ${teamTag} fan, probably. via packersvsbears.com 🧀🏈`;
 
-  const handleShareX = () => {
-    const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      shareText + " via packersvsbears.com 🧀🏈"
-    )}&url=${encodeURIComponent(shareUrl)}`;
-    window.open(intent, "_blank", "noopener,noreferrer");
-  };
+  // Shareable URL for this specific excuse
+  // Example: ?excuse=7 or ?p_excuse=12
+  const shareUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${window.location.pathname}?${urlKey}=${excuseIndex}`
+      : `${import.meta.env.VITE_SITE_URL || 'https://packersvsbears.com'}/?${urlKey}=${excuseIndex}`;
+
+    // Define this array inside the component, before the return statement.
+    const sharePlatforms: { platform: SharePlatform; label: string; className: string }[] = [
+      { platform: 'x', label: 'X', className: 'bg-black/80 hover:bg-black' },
+      { platform: 'facebook', label: 'Facebook', className: 'bg-white/10 hover:bg-white/20' },
+      { platform: 'reddit', label: 'Reddit', className: 'bg-white/10 hover:bg-white/20' },
+      { platform: 'threads', label: 'Threads', className: 'bg-white/10 hover:bg-white/20' },
+    ];
+
 
   return (
     <section
@@ -76,13 +151,15 @@ const ExcuseGeneratorSection: React.FC<ExcuseGeneratorProps> = ({
         >
           <div className="min-h-[120px] flex items-center justify-center mb-10">
             <p className="text-2xl md:text-4xl font-bold italic leading-tight tracking-tight">
-              "{excuse}"
+              &quot;{excuse}&quot;
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4">
             <button
               onClick={onGenerate}
+              type="button"
+              aria-label="Generate a new excuse"
               className={`w-full sm:w-auto px-8 py-4 font-black rounded-2xl transition-all active:scale-95 uppercase tracking-widest text-sm ${theme.btnClasses}`}
             >
               New Excuse
@@ -90,6 +167,8 @@ const ExcuseGeneratorSection: React.FC<ExcuseGeneratorProps> = ({
 
             <button
               onClick={() => copy(shareText)}
+              type="button"
+              aria-label="Copy to clipboard"
               className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
             >
               {copied ? (
@@ -99,23 +178,34 @@ const ExcuseGeneratorSection: React.FC<ExcuseGeneratorProps> = ({
               )}
               {copied ? "Copied!" : "Copy to Share"}
             </button>
+                
 
-            <button
-              onClick={handleShareX}
-              className="w-full sm:w-auto px-8 py-4 bg-black/80 hover:bg-black text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2"
-            >
-              Share on X
-            </button>
+            {sharePlatforms.map(({ platform, label, className }) => (
+              <button
+                key={platform}
+                onClick={() => shareTo(platform, shareText, shareUrl)}
+                type="button"
+                aria-label={`Share on ${label}`}
+                className={`w-full sm:w-auto px-6 py-4 text-white font-bold rounded-2xl transition-all ${className}`}
+              >
+                Share ({label})
+              </button>
+            ))}
           </div>
+
+          <p className="mt-6 text-sm text-white/70">
+            Tip: Each excuse has its own shareable link (example:
+            <span className="font-semibold"> ?{urlKey}=7</span>).
+          </p>
         </div>
       </div>
+
       {theme.decorations}
     </section>
   );
 };
 
 // --- Main App Component ---
-
 const App: React.FC = () => {
   const { data, error } = useRivalryData();
 
@@ -422,6 +512,7 @@ const App: React.FC = () => {
           </div>
         </div>
       </footer>
+
       <SpeedInsights />
     </div>
   );
