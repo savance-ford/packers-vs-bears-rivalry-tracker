@@ -56,6 +56,7 @@ const buildShareUrl = (
       // Threads has no official share-intent URL
       return `https://www.threads.net/`;
     default:
+      const _exhaustiveCheck: never = platform;
       return shareUrl;
   }
 };
@@ -121,7 +122,16 @@ const ExcuseGeneratorSection: React.FC<ExcuseGeneratorProps> = ({
   const shareUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${window.location.pathname}?${urlKey}=${excuseIndex}`
-      : `https://packersvsbears.com/?${urlKey}=${excuseIndex}`;
+      : `${import.meta.env.VITE_SITE_URL || 'https://packersvsbears.com'}/?${urlKey}=${excuseIndex}`;
+
+    // Define this array inside the component, before the return statement.
+    const sharePlatforms: { platform: SharePlatform; label: string; className: string }[] = [
+      { platform: 'x', label: 'X', className: 'bg-black/80 hover:bg-black' },
+      { platform: 'facebook', label: 'Facebook', className: 'bg-white/10 hover:bg-white/20' },
+      { platform: 'reddit', label: 'Reddit', className: 'bg-white/10 hover:bg-white/20' },
+      { platform: 'threads', label: 'Threads', className: 'bg-white/10 hover:bg-white/20' },
+    ];
+
 
   return (
     <section
@@ -168,42 +178,19 @@ const ExcuseGeneratorSection: React.FC<ExcuseGeneratorProps> = ({
               )}
               {copied ? "Copied!" : "Copy to Share"}
             </button>
+                
 
-            <button
-              onClick={() => shareTo("x", shareText, shareUrl)}
-              type="button"
-              aria-label="Share on X"
-              className="w-full sm:w-auto px-6 py-4 bg-black/80 hover:bg-black text-white font-bold rounded-2xl transition-all"
-            >
-              Share (X)
-            </button>
-
-            <button
-              onClick={() => shareTo("facebook", shareText, shareUrl)}
-              type="button"
-              aria-label="Share on Facebook"
-              className="w-full sm:w-auto px-6 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl transition-all"
-            >
-              Share (Facebook)
-            </button>
-
-            <button
-              onClick={() => shareTo("reddit", shareText, shareUrl)}
-              type="button"
-              aria-label="Share on Reddit"
-              className="w-full sm:w-auto px-6 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl transition-all"
-            >
-              Share (Reddit)
-            </button>
-
-            <button
-              onClick={() => shareTo("threads", shareText, shareUrl)}
-              type="button"
-              aria-label="Share on Threads"
-              className="w-full sm:w-auto px-6 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl transition-all"
-            >
-              Share (Threads)
-            </button>
+            {sharePlatforms.map(({ platform, label, className }) => (
+              <button
+                key={platform}
+                onClick={() => shareTo(platform, shareText, shareUrl)}
+                type="button"
+                aria-label={`Share on ${label}`}
+                className={`w-full sm:w-auto px-6 py-4 text-white font-bold rounded-2xl transition-all ${className}`}
+              >
+                Share ({label})
+              </button>
+            ))}
           </div>
 
           <p className="mt-6 text-sm text-white/70">
